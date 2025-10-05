@@ -4,6 +4,8 @@
 // iLab Server:
 
 #include "thread-worker.h"
+#define STACK_SIZE SIGSTKSZ
+#define DEBUG 1
 
 //Global counter for total context switches and 
 //average turn around and response time
@@ -14,19 +16,45 @@ double avg_resp_time=0;
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
 // YOUR CODE HERE
-
+void dput(char *s) {
+	if (DEBUG) {
+		fprintf(stderr, "%s", s);
+	}
+}
 
 /* create a new thread */
 int worker_create(worker_t * thread, pthread_attr_t * attr, 
                       void *(*function)(void*), void * arg) {
 
-       // - create Thread Control Block (TCB)
-       // - create and initialize the context of this worker thread
-       // - allocate space of stack for this thread to run
-       // after everything is set, push this thread into run queue and 
-       // - make it ready for the execution.
+	// - create Thread Control Block (TCB)
+	// - create and initialize the context of this worker thread
+	// - allocate space of stack for this thread to run
+	// after everything is set, push this thread into run queue and 
+	// - make it ready for the execution.
 
-       // YOUR CODE HERE
+	// Create TCB for the new worker thread
+	tcb* newWorkerTcb = (tcb*)malloc(sizeof(tcb));
+
+	// Initialize context for new thread
+	newWorkerTcb->ctx = (ucontext_t)malloc(sizeof(ucontext_t));
+	getcontext(&(newWorkerTcb->ctx));
+	newWorkerTcb->ctx->uc_link = NULL;
+	dput("Context initialized\n");
+
+	// Allocate and initialize context stack
+	newWorkerTcb->ctx->uc_stack.ss_sp = malloc(STACK_SIZE);
+	newWorkerTcb->ctx->uc_stack.ss_size = STACK_SIZE;
+	newWorkerTcb->ctx->uc_stack.ss_flags = 0;
+	makecontext(&(newWorkerTcb->ctx), *function, 1, arg);
+	dput("Stack allocated and context modified\n");
+
+	// Initialize other TCB data
+	newWorkerTcb->id = thread;
+	newWorkerTcb->state = READY;
+	dput("State and ID set to READY\n");
+
+	// TODO: Give a real priority value
+	newWorkerTcb->priority = 0; // Highest priority for MLFQ
 	
     return 0;
 };

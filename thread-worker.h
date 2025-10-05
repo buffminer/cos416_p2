@@ -41,11 +41,11 @@ typedef struct TCB {
 	// And more ...
 
 	// YOUR CODE HERE
-  worker_t id;
-  int status;
-  ucontext_t ctx;
-  void *stack;
-  inst priority;
+ 	worker_t id;
+	int status;
+	ucontext_t ctx;
+	void *stack;
+	inst priority;
 } tcb; 
 
 /* mutex struct definition */
@@ -53,8 +53,8 @@ typedef struct worker_mutex_t {
 	/* add something here */
 
 	// YOUR CODE HERE
-  int locked;
-  worker_t active_thread;
+	int locked;
+	worker_t active_thread;
 } worker_mutex_t;
 
 /* define your data structures here: */
