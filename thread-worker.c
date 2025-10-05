@@ -16,9 +16,9 @@ double avg_resp_time=0;
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
 // YOUR CODE HERE
-void dput(char *s) {
+void dputs(char *s) {
 	if (DEBUG) {
-		fprintf(stderr, "%s", s);
+		fprintf(stderr, "%s\n", s);
 	}
 }
 
@@ -39,19 +39,19 @@ int worker_create(worker_t * thread, pthread_attr_t * attr,
 	newWorkerTcb->ctx = (ucontext_t)malloc(sizeof(ucontext_t));
 	getcontext(&(newWorkerTcb->ctx));
 	newWorkerTcb->ctx->uc_link = NULL;
-	dput("Context initialized\n");
+	dputs("Context initialized\n");
 
 	// Allocate and initialize context stack
 	newWorkerTcb->ctx->uc_stack.ss_sp = malloc(STACK_SIZE);
 	newWorkerTcb->ctx->uc_stack.ss_size = STACK_SIZE;
 	newWorkerTcb->ctx->uc_stack.ss_flags = 0;
 	makecontext(&(newWorkerTcb->ctx), *function, 1, arg);
-	dput("Stack allocated and context modified\n");
+	dputs("Stack allocated and context modified\n");
 
 	// Initialize other TCB data
 	newWorkerTcb->id = thread;
 	newWorkerTcb->state = READY;
-	dput("State and ID set to READY\n");
+	dputs("State and ID set to READY\n");
 
 	// TODO: Give a real priority value
 	newWorkerTcb->priority = 0; // Highest priority for MLFQ
