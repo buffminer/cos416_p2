@@ -12,6 +12,7 @@
 long tot_cntx_switches=0;
 double avg_turn_time=0;
 double avg_resp_time=0;
+long next_thread_id=0;
 
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
@@ -36,22 +37,25 @@ int worker_create(worker_t * thread, pthread_attr_t * attr,
 	tcb* newWorkerTcb = (tcb*)malloc(sizeof(tcb));
 
 	// Initialize context for new thread
-	newWorkerTcb->ctx = (ucontext_t)malloc(sizeof(ucontext_t));
-	getcontext(&(newWorkerTcb->ctx));
-	newWorkerTcb->ctx.uc_link = NULL;
+	newWorkerTcb->ctx = (ucontext_t *)malloc(sizeof(ucontext_t));
+	getcontext(newWorkerTcb->ctx);
+	newWorkerTcb->ctx->uc_link = NULL;
 	dputs("Context initialized");
 
 	// Allocate and initialize context stack
-	newWorkerTcb->ctx.uc_stack.ss_sp = malloc(STACK_SIZE);
-	newWorkerTcb->ctx.uc_stack.ss_size = STACK_SIZE;
-	newWorkerTcb->ctx.uc_stack.ss_flags = 0;
-	makecontext(&(newWorkerTcb->ctx), *function, 1, arg);
+	newWorkerTcb->ctx->uc_stack.ss_sp = malloc(STACK_SIZE);
+	newWorkerTcb->ctx->uc_stack.ss_size = STACK_SIZE;
+	newWorkerTcb->ctx->uc_stack.ss_flags = 0;
+	makecontext(newWorkerTcb->ctx, (void (*)(void)) function, 1, arg);
 	dputs("Stack allocated and context modified");
 
 	// Initialize other TCB data
+    *thread = next_thread_id++;
 	newWorkerTcb->id = *thread;
 	newWorkerTcb->status = READY;
 	dputs("State and ID set to READY");
+    printf("New thread created with ID: %u\n", newWorkerTcb->id);
+    printf("Thread status: %d\n", newWorkerTcb->status);
 
 	// TODO: Give a real priority value
 	newWorkerTcb->priority = 0; // Highest priority for MLFQ
