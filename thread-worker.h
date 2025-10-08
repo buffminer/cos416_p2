@@ -31,6 +31,13 @@
 
 typedef uint worker_t;
 
+typedef enum {
+	READY, 
+	RUNNING, 
+	WAITING,
+	TERMINATED
+} thread_state;
+
 typedef struct TCB {
 	/* add important states in a thread control block */
 	// thread Id
@@ -42,7 +49,7 @@ typedef struct TCB {
 
 	// YOUR CODE HERE
  	worker_t id;
-	int status;
+	thread_state status;
 	ucontext_t ctx;
 	void *stack;
 	inst priority;
