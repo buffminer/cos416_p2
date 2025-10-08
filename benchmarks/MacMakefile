@@ -1,0 +1,22 @@
+CC = gcc
+CFLAGS = -g -w
+
+all:: clean parallel_cal vector_multiply external_cal test
+
+../thread-worker.o:
+	$(CC) $(CFLAGS) -DMLFQ -c ../thread-worker.c -o ../thread-worker.o
+
+parallel_cal: ../thread-worker.o
+	$(CC) $(CFLAGS) -pthread -o parallel_cal parallel_cal.c ../thread-worker.o
+
+vector_multiply: ../thread-worker.o
+	$(CC) $(CFLAGS) -pthread -o vector_multiply vector_multiply.c ../thread-worker.o
+
+external_cal: ../thread-worker.o
+	$(CC) $(CFLAGS) -pthread -o external_cal external_cal.c ../thread-worker.o
+
+test: ../thread-worker.o
+	$(CC) $(CFLAGS) -pthread -o test test.c ../thread-worker.o
+
+clean:
+	rm -rf testcase test parallel_cal vector_multiply external_cal *.o ./record/ *.dSYM
