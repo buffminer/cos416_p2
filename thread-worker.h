@@ -51,7 +51,7 @@ typedef struct TCB {
 	// YOUR CODE HERE
  	worker_t id;
 	thread_state status;
-	ucontext_t ctx;
+	ucontext_t *ctx;
 	void *stack;
 	int priority;
 } tcb; 

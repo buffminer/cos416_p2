@@ -82,7 +82,7 @@ void worker_exit(void *value_ptr) {
 	// YOUR CODE HERE
 	tcb* workerTcb = (tcb*)value_ptr;
 	workerTcb->status = TERMINATED;
-	free(workerTcb->ctx.uc_stack.ss_sp);
+	free(workerTcb->ctx->uc_stack.ss_sp);
 	free(workerTcb->ctx);
 	free(workerTcb);
 };
@@ -196,7 +196,7 @@ static void schedule() {
 #elif defined(CFS)
     	sched_cfs();  
 #else
-	# error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
+	// # error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
 #endif
 }
 
