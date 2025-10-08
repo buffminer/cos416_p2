@@ -38,20 +38,20 @@ int worker_create(worker_t * thread, pthread_attr_t * attr,
 	// Initialize context for new thread
 	newWorkerTcb->ctx = (ucontext_t)malloc(sizeof(ucontext_t));
 	getcontext(&(newWorkerTcb->ctx));
-	newWorkerTcb->ctx->uc_link = NULL;
-	dputs("Context initialized\n");
+	newWorkerTcb->ctx.uc_link = NULL;
+	dputs("Context initialized");
 
 	// Allocate and initialize context stack
-	newWorkerTcb->ctx->uc_stack.ss_sp = malloc(STACK_SIZE);
-	newWorkerTcb->ctx->uc_stack.ss_size = STACK_SIZE;
-	newWorkerTcb->ctx->uc_stack.ss_flags = 0;
+	newWorkerTcb->ctx.uc_stack.ss_sp = malloc(STACK_SIZE);
+	newWorkerTcb->ctx.uc_stack.ss_size = STACK_SIZE;
+	newWorkerTcb->ctx.uc_stack.ss_flags = 0;
 	makecontext(&(newWorkerTcb->ctx), *function, 1, arg);
-	dputs("Stack allocated and context modified\n");
+	dputs("Stack allocated and context modified");
 
 	// Initialize other TCB data
-	newWorkerTcb->id = thread;
-	newWorkerTcb->state = READY;
-	dputs("State and ID set to READY\n");
+	newWorkerTcb->id = *thread;
+	newWorkerTcb->status = READY;
+	dputs("State and ID set to READY");
 
 	// TODO: Give a real priority value
 	newWorkerTcb->priority = 0; // Highest priority for MLFQ
@@ -76,10 +76,11 @@ void worker_exit(void *value_ptr) {
 	// - de-allocate any dynamic memory created when starting this thread
 
 	// YOUR CODE HERE
-	newWorkerTcb->state = TERMINATED;
-	free(newWorkerTcb->ctx->uc_stack.ss_sp);
-	free(newWorkerTcb->ctx);
-	free(newWorkerTcb);
+	tcb* workerTcb = (tcb*)value_ptr;
+	workerTcb->status = TERMINATED;
+	free(workerTcb->ctx.uc_stack.ss_sp);
+	free(workerTcb->ctx);
+	free(workerTcb);
 };
 
 

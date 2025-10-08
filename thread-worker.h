@@ -8,6 +8,7 @@
 #define WORKER_T_H
 
 #define _GNU_SOURCE
+#define _XOPEN_SOURCE
 
 /* To use Linux pthread Library in Benchmark, you have to comment the USE_WORKERS macro */
 #define USE_WORKERS 1
@@ -52,7 +53,7 @@ typedef struct TCB {
 	thread_state status;
 	ucontext_t ctx;
 	void *stack;
-	inst priority;
+	int priority;
 } tcb; 
 
 /* mutex struct definition */
