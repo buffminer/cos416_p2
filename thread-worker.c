@@ -76,6 +76,10 @@ void worker_exit(void *value_ptr) {
 	// - de-allocate any dynamic memory created when starting this thread
 
 	// YOUR CODE HERE
+	newWorkerTcb->state = TERMINATED;
+	free(newWorkerTcb->ctx->uc_stack.ss_sp);
+	free(newWorkerTcb->ctx);
+	free(newWorkerTcb);
 };
 
 
