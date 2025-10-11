@@ -80,11 +80,16 @@ void worker_exit(void *value_ptr) {
 	// - de-allocate any dynamic memory created when starting this thread
 
 	// YOUR CODE HERE
-	tcb* workerTcb = (tcb*)value_ptr;
+	// tcb* workerTcb = //TODO GET THE TCB FROM THE RUN QUEUE;
+	dputs("casting thread value pointer to TCB");
 	workerTcb->status = TERMINATED;
+	dputs("Thread status set to TERMINATED");
 	free(workerTcb->ctx->uc_stack.ss_sp);
+	dputs("Freed thread stack");
 	free(workerTcb->ctx);
+	dputs("Freed thread context");
 	free(workerTcb);
+	dputs("Freed thread TCB");
 };
 
 
