@@ -93,33 +93,26 @@ tcb *get_thread_tcb(worker_t *id)
 }
 
 /* terminate a thread */
-void worker_exit(void *value_ptr)
+void worker_exit(tcb *thread_tcb)
 {
 	// - de-allocate any dynamic memory created when starting this thread
 
-	// YOUR CODE HERE
-	worker_t *worker_id = (worker_t *)value_ptr;
-
-	// Remove the thread node from the runqueue
-	thread_node *node = remove_id(rq, *worker_id);
-
-	if (node == NULL)
+	if (thread_tcb == NULL)
 	{
 		dputs("Thread does not exist");
 		return;
 	}
 
-	tcb *workerTcb = node->thread;
 	dputs("casting thread value pointer to TCB");
-	workerTcb->status = TERMINATED;
+	thread_tcb->status = TERMINATED;
 	dputs("Thread status set to TERMINATED");
-	free(workerTcb->ctx->uc_stack.ss_sp);
+	free(thread_tcb->ctx->uc_stack.ss_sp);
 	dputs("Freed thread stack");
-	free(workerTcb->ctx);
+	free(thread_tcb->ctx);
 	dputs("Freed thread context");
-	free(workerTcb);
+	free(thread_tcb);
 	dputs("Freed thread TCB");
-	free(node);
+	// free(node);
 };
 
 /* Wait for thread termination */

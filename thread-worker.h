@@ -86,7 +86,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr, void *(*function)(void
 int worker_yield();
 
 /* terminate a thread */
-void worker_exit(void *value_ptr);
+void worker_exit(tcb *worker_tcb);
 
 /* wait for thread termination */
 int worker_join(worker_t thread, void **value_ptr);
