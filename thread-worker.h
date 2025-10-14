@@ -8,6 +8,8 @@
 #define WORKER_T_H
 
 #define _GNU_SOURCE
+
+// gcc required inclusion of this line in order to compile on arm64 mac
 #define _XOPEN_SOURCE
 
 /* To use Linux pthread Library in Benchmark, you have to comment the USE_WORKERS macro */
@@ -101,6 +103,8 @@ int worker_mutex_unlock(worker_mutex_t *mutex);
 
 /* destroy the mutex */
 int worker_mutex_destroy(worker_mutex_t *mutex);
+
+tcb *get_thread_tcb(worker_t *id);
 
 /* Function to print global statistics. Do not modify this function.*/
 void print_app_stats(void);
