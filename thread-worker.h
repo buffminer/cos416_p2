@@ -1,6 +1,6 @@
-// File:	worker_t.h
+// File:	thread-worker.h
 
-// List all group member's name:
+// List all group member's name: Branin Podolski, Matt Rieter
 // username of iLab:
 // iLab Server:
 
