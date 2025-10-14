@@ -36,3 +36,13 @@ void enqueue(Runqueue *rq, tcb* thread) {
     }
 }
 
+thread_node dequeue(Runqueue *rq) {
+    if (rq->head == NULL) {
+        return NULL;
+    }
+
+    thread_node *tn = rq->head;
+    rq->head = rq->head->next;
+
+    return tn;
+}
