@@ -17,6 +17,8 @@ runqueue *rq;
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
 // YOUR CODE HERE
+
+// Debug print function that only prints when debug flag set to 1
 void dputs(char *s)
 {
 	if (DEBUG)
@@ -43,32 +45,32 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	}
 
 	// Create TCB for the new worker thread
-	tcb *newWorkerTcb = (tcb *)malloc(sizeof(tcb));
+	tcb *new_worker_tcb = (tcb *)malloc(sizeof(tcb));
 
 	// Initialize context for new thread
-	newWorkerTcb->ctx = (ucontext_t *)malloc(sizeof(ucontext_t));
-	getcontext(newWorkerTcb->ctx);
-	newWorkerTcb->ctx->uc_link = NULL;
+	new_worker_tcb->ctx = (ucontext_t *)malloc(sizeof(ucontext_t));
+	getcontext(new_worker_tcb->ctx);
+	new_worker_tcb->ctx->uc_link = NULL;
 	dputs("Context initialized");
 
 	// Allocate and initialize context stack
-	newWorkerTcb->ctx->uc_stack.ss_sp = malloc(STACK_SIZE);
-	newWorkerTcb->ctx->uc_stack.ss_size = STACK_SIZE;
-	newWorkerTcb->ctx->uc_stack.ss_flags = 0;
-	makecontext(newWorkerTcb->ctx, (void (*)(void))function, 1, arg);
+	new_worker_tcb->ctx->uc_stack.ss_sp = malloc(STACK_SIZE);
+	new_worker_tcb->ctx->uc_stack.ss_size = STACK_SIZE;
+	new_worker_tcb->ctx->uc_stack.ss_flags = 0;
+	makecontext(new_worker_tcb->ctx, (void (*)(void))function, 1, arg);
 	dputs("Stack allocated and context modified");
 
 	// Initialize other TCB data
 	*thread = next_thread_id++;
-	newWorkerTcb->id = *thread;
-	newWorkerTcb->status = READY;
+	new_worker_tcb->id = *thread;
+	new_worker_tcb->status = READY;
 	dputs("State and ID set to READY");
-	printf("New thread created with ID: %u\n", newWorkerTcb->id);
-	printf("Thread status: %d\n", newWorkerTcb->status);
+	printf("New thread created with ID: %u\n", new_worker_tcb->id);
+	printf("Thread status: %d\n", new_worker_tcb->status);
 
 	// TODO: Give a real priority value
-	newWorkerTcb->priority = 0; // Highest priority for MLFQ
-	enqueue(rq, newWorkerTcb);
+	new_worker_tcb->priority = 0; // Highest priority for MLFQ
+	enqueue(rq, new_worker_tcb);
 	return 0;
 }
 
@@ -85,15 +87,21 @@ int worker_yield()
 	return 0;
 };
 
+tcb *get_thread_tcb(worker_t *id)
+{
+	return (remove_id(rq, *id))->thread;
+}
+
 /* terminate a thread */
 void worker_exit(void *value_ptr)
 {
 	// - de-allocate any dynamic memory created when starting this thread
 
 	// YOUR CODE HERE
-	worker_t *workerID = (worker_t *)value_ptr;
+	worker_t *worker_id = (worker_t *)value_ptr;
 
-	thread_node *node = remove_id(rq, *workerID);
+	// Remove the thread node from the runqueue
+	thread_node *node = remove_id(rq, *worker_id);
 
 	if (node == NULL)
 	{
@@ -162,6 +170,7 @@ int worker_mutex_unlock(worker_mutex_t *mutex)
 	// so that they could compete for mutex later.
 
 	// YOUR CODE HERE
+	mutex->locked = 0;
 	return 0;
 };
 
