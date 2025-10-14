@@ -14,10 +14,10 @@
 #define USE_WORKERS 1
 
 /* Targeted latency in milliseconds */
-#define TARGET_LATENCY   20  
+#define TARGET_LATENCY 20
 
 /* Minimum scheduling granularity in milliseconds */
-#define MIN_SCHED_GRN    1
+#define MIN_SCHED_GRN 1
 
 /* Time slice quantum in milliseconds */
 #define QUANTUM 10
@@ -29,17 +29,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ucontext.h>
+#include "runqueue.h"
 
 typedef uint worker_t;
 
-typedef enum {
-	READY, 
-	RUNNING, 
+typedef enum
+{
+	READY,
+	RUNNING,
 	WAITING,
 	TERMINATED
 } thread_state;
 
-typedef struct TCB {
+typedef struct TCB
+{
 	/* add important states in a thread control block */
 	// thread Id
 	// thread status
@@ -49,20 +52,22 @@ typedef struct TCB {
 	// And more ...
 
 	// YOUR CODE HERE
- 	worker_t id;
+	worker_t id;
 	thread_state status;
 	ucontext_t *ctx;
 	void *stack;
 	int priority;
-} tcb; 
+} tcb;
 
 /* mutex struct definition */
-typedef struct worker_mutex_t {
+typedef struct worker_mutex_t
+{
 	/* add something here */
 
 	// YOUR CODE HERE
-	int locked;
-	worker_t active_thread;
+	volatile int locked;
+	worker_t *owner;
+	runqueue *waiting_threads;
 } worker_mutex_t;
 
 /* define your data structures here: */
@@ -70,12 +75,10 @@ typedef struct worker_mutex_t {
 
 // YOUR CODE HERE
 
-
 /* Function Declarations: */
 
 /* create a new thread */
-int worker_create(worker_t * thread, pthread_attr_t * attr, void
-    *(*function)(void*), void * arg);
+int worker_create(worker_t *thread, pthread_attr_t *attr, void *(*function)(void *), void *arg);
 
 /* give CPU pocession to other user level worker threads voluntarily */
 int worker_yield();
@@ -88,7 +91,7 @@ int worker_join(worker_t thread, void **value_ptr);
 
 /* initial the mutex lock */
 int worker_mutex_init(worker_mutex_t *mutex, const pthread_mutexattr_t
-    *mutexattr);
+												 *mutexattr);
 
 /* aquire the mutex lock */
 int worker_mutex_lock(worker_mutex_t *mutex);
@@ -98,7 +101,6 @@ int worker_mutex_unlock(worker_mutex_t *mutex);
 
 /* destroy the mutex */
 int worker_mutex_destroy(worker_mutex_t *mutex);
-
 
 /* Function to print global statistics. Do not modify this function.*/
 void print_app_stats(void);
