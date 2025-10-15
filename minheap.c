@@ -41,6 +41,7 @@ int main()
     if(!random_array(&heap, TEST_LENGTH, MINIMUM, MAXIMUM))
     {
         fprintf(stderr, "Failed to allocate array");
+        return EXIT_FAILURE;
     }
 
     printf("Before sort: ");
