@@ -6,7 +6,7 @@
 // Will not be relavent for the project
 #define MINIMUM 1
 #define MAXIMUM 20
-#define ARR_LENGTH 12
+#define TEST_LENGTH 15
 #define DEBUG 1
 
 // These will be needed for the project
@@ -14,80 +14,101 @@
 #define LEFT(i) (2 * i + 1)
 #define RIGHT(i) (2 * i + 2)
 
-// This is going to be the structure that represents the processes
+// This is going to be the structure that represents the threads
 typedef struct
 {
     int key;
 } Node;
 
-Node *random_array(int size, int min, int max);
+// This structure represents the min heap
+typedef struct
+{
+    Node *arr;
+    size_t size;
+    size_t capacity;
+} minHeap;
+
+int append(minHeap *heap, Node node);
+int random_array(minHeap *heap, size_t quantity, int min, int max);
 void swap(Node *parent, Node *child);
-void heapify(Node *arr, int i, int size);
-void min_heap(Node *arr, int size);
+void heapify(minHeap *heap, size_t i);
+void build_min_heap(minHeap *heap);
 
 int main()
 {
-    Node *arr = random_array(ARR_LENGTH, MINIMUM, MAXIMUM);
-    if(DEBUG)
-    {
-        printf("Before sort: ");
-        for(int i = 0; i < ARR_LENGTH; i++)
-        {
-            printf("%i ", arr[i].key);
-        }
-        printf("\n");
-    }
+    minHeap heap = {0};
     
-    min_heap(arr, ARR_LENGTH);
-    if(DEBUG)
+    if(!random_array(&heap, TEST_LENGTH, MINIMUM, MAXIMUM))
     {
-        printf("After sort:  ");
-        for(int i = 0; i < ARR_LENGTH; i++)
-        {
-            printf("%i ", arr[i].key);
-        }
-        printf("\n");
+        fprintf(stderr, "Failed to allocate array");
     }
 
-    free(arr);
+    printf("Before sort: ");
+    for(size_t i = 0; i < heap.size; i++)
+    {
+        printf("%i ", heap.arr[i].key);
+    }
+    printf("\n");
+
+    build_min_heap(&heap);
+
+    printf("After sort:  ");
+    for(size_t i = 0; i < heap.size; i++)
+    {
+        printf("%i ", heap.arr[i].key);
+    }
+    printf("\n");
+
+    free(heap.arr);
     return 0;
 }
 
-Node *random_array(int size, int min, int max)
+int append(minHeap *heap, Node node)
 {
-    if(max - min + 1 < size)
+    if(heap->size == heap->capacity)
     {
-        fprintf(stderr, "Error: range too small for %d unique numbers.\n", size);
-        exit(EXIT_FAILURE);
+        size_t newcap = heap->capacity ? heap->capacity * 2 : 8;
+        if (newcap > SIZE_MAX / sizeof(Node)) return 0;
+        Node *temp = realloc(heap->arr, newcap * sizeof(Node));
+        if(!temp) return 0;
+        heap->arr = temp;
+        heap->capacity = newcap;
     }
-    srand((unsigned)time(NULL));
+    heap->arr[heap->size++] = node;
+    return 1;
+}
+
+int random_array(minHeap *heap, size_t quantity, int min, int max)
+{
     int range = max - min + 1;
-    int *seen = calloc(range, sizeof(int));
-    if(!seen)
-    {
-        perror("calloc");
-        exit(EXIT_FAILURE);
+    if (range < 0 || (size_t)range < quantity) {
+        fprintf(stderr, "Error: range too small for %zu unique numbers.\n", quantity);
+        return 0;
     }
 
-    Node *arr = (Node *)malloc(size * sizeof(Node));
-    if(!arr)
-    {
-        perror("calloc");
-        exit(EXIT_FAILURE);
+    int *seen = calloc((size_t)range, sizeof *seen);
+    if (!seen){ 
+        perror("calloc"); 
+        return 0; 
     }
-    
-    int num;
-    for(int i = 0; i < size; i++)
-    {
-        Node node;
-        arr[i] = node;
-        do{
-            num = rand() % (max - min + 1) + min;
-        }while(seen[num - min]);
+
+    int ok = 1;
+    for (size_t i = 0; i < quantity; i++) {
+        int num;
+        do { 
+            num = rand() % range + min; 
+        } while (seen[num - min]);
         seen[num - min] = 1;
-        arr[i].key = num;
+
+        Node node = { .key = num };
+        if(!append(heap, node)){ 
+            ok = 0; 
+            break; 
+        }
     }
-    return arr;
+
+    free(seen);
+    return ok;
 }
 
 void swap(Node *parent, Node *child)
@@ -97,32 +118,32 @@ void swap(Node *parent, Node *child)
     *child = temp;
 }
 
-void heapify(Node *arr, int i, int size)
+void heapify(minHeap *heap, size_t i)
 {
-    int minimum = i;
-    int left = LEFT(i);
-    int right = RIGHT(i);
+    size_t minimum = i;
+    size_t left = LEFT(i);
+    size_t right = RIGHT(i);
 
-    if(left < size && arr[minimum].key > arr[left].key)
+    if(left < heap->size && heap->arr[minimum].key > heap->arr[left].key)
     {
         minimum = left;
     }
-    if(right < size && arr[minimum].key > arr[right].key)
+    if(right < heap->size && heap->arr[minimum].key > heap->arr[right].key)
     {
         minimum = right;
     }
     if(minimum != i)
     {
-        swap(&arr[i], &arr[minimum]);
+        swap(&heap->arr[i], &heap->arr[minimum]);
 
-        heapify(arr, minimum, size);
+        heapify(heap, minimum);
     }
 }
 
-void min_heap(Node *arr, int size)
+void build_min_heap(minHeap *heap)
 {
-    for(int i = size / 2 - 1; i >= 0; i--)
+    for(size_t i = heap->size / 2; i-- > 0; )
     {
-        heapify(arr, i, size);
+        heapify(heap, i);
     }
 }
