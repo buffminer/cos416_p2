@@ -31,7 +31,10 @@ typedef struct thread_node
 
 void init_runqueue(runqueue *rq);
 
+void print_runqueue(runqueue *rq);
+
 void enqueue(runqueue *rq, tcb *thread);
+thread_node *find_tcb(runqueue *rq, worker_t threadID);
 
 thread_node *remove_id(runqueue *rq, worker_t threadID);
 

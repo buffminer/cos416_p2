@@ -86,7 +86,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr, void *(*function)(void
 int worker_yield();
 
 /* terminate a thread */
-void worker_exit(tcb *worker_tcb);
+void worker_exit(void *value_ptr);
 
 /* wait for thread termination */
 int worker_join(worker_t thread, void **value_ptr);
@@ -103,6 +103,8 @@ int worker_mutex_unlock(worker_mutex_t *mutex);
 
 /* destroy the mutex */
 int worker_mutex_destroy(worker_mutex_t *mutex);
+
+void set_current_thread(tcb *thread);
 
 tcb *get_thread_tcb(worker_t *id);
 

@@ -13,6 +13,7 @@ long tot_cntx_switches = 0;
 double avg_turn_time = 0;
 double avg_resp_time = 0;
 long next_thread_id = 0;
+static tcb *global_running_thread;
 runqueue *rq;
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
@@ -71,6 +72,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	// TODO: Give a real priority value
 	new_worker_tcb->priority = 0; // Highest priority for MLFQ
 	enqueue(rq, new_worker_tcb);
+	print_runqueue(rq);
 	return 0;
 }
 
@@ -89,13 +91,14 @@ int worker_yield()
 
 tcb *get_thread_tcb(worker_t *id)
 {
-	return (remove_id(rq, *id))->thread;
+	return (find_tcb(rq, *id))->thread;
 }
 
 /* terminate a thread */
-void worker_exit(tcb *thread_tcb)
+void worker_exit(void *value_ptr)
 {
 	// - de-allocate any dynamic memory created when starting this thread
+	tcb *thread_tcb = global_running_thread;
 
 	if (thread_tcb == NULL)
 	{

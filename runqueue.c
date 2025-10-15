@@ -39,6 +39,28 @@ void enqueue(runqueue *rq, tcb *thread)
     }
 }
 
+thread_node *find_tcb(runqueue *rq, worker_t threadID)
+{
+    if (rq->head == NULL)
+    {
+        return NULL;
+    }
+
+    thread_node *prev = NULL;
+    thread_node *curr = rq->head;
+
+    while (curr != NULL)
+    {
+        if (curr->thread->id == threadID)
+        {
+            return curr;
+        }
+        prev = curr;
+        curr = curr->next_thread;
+    }
+    return NULL;
+}
+
 thread_node *remove_id(runqueue *rq, worker_t threadID)
 {
     if (rq->head == NULL)
@@ -88,4 +110,16 @@ thread_node *dequeue(runqueue *rq)
     rq->head = rq->head->next_thread;
 
     return tn;
+}
+
+void print_runqueue(runqueue *rq)
+{
+    thread_node *curr = rq->head;
+    printf("Runqueue: ");
+    while (curr != NULL)
+    {
+        printf("%lu ", (unsigned long)curr->thread->id);
+        curr = curr->next_thread;
+    }
+    printf("\n");
 }
