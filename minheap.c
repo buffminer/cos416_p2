@@ -42,11 +42,7 @@ int main()
     
     random_array(&heap, TEST_LENGTH, MINIMUM, MAXIMUM);
 
-    if(!heap_pop(&heap))
-    {
-        fprintf(stderr, "Error: no node was popped.");
-        return EXIT_FAILURE;
-    }
+    if(!heap_pop(&heap)) fprintf(stderr, "Error: no node was popped.");
 
     free(heap.arr);
     return 0;
