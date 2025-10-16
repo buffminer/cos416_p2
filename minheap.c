@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <string.h>
 
 // These are only for the random array/testing purposes
 // Will not be relavent for the project
