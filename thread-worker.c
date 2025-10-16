@@ -65,7 +65,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	// Initialize other TCB data
 	*thread = next_thread_id++;
 	new_worker_tcb->id = *thread;
-	new_worker_tcb->status = READY;
+	new_worker_tcb->status = SCHEDULED;
 	dputs("State and ID set to READY");
 	printf("New thread created with ID: %u\n", new_worker_tcb->id);
 	printf("Thread status: %d\n", new_worker_tcb->status);
@@ -114,14 +114,13 @@ void worker_exit(void *value_ptr)
 		return;
 	}
 
-	thread_tcb->status = TERMINATED;
-	// dputs("Thread status set to TERMINATED");
 	// free(thread_tcb->ctx->uc_stack.ss_sp);
 	// dputs("Freed thread stack");
 	// free(thread_tcb->ctx);
 	// dputs("Freed thread context");
 	// free(thread_tcb);
 	// dputs("Freed thread TCB");
+	tot_cntx_switches++; // Increment context switch counter
 	setcontext(&scheduler_context);
 };
 
@@ -198,9 +197,10 @@ static void sched_psjf()
 	}
 
 	current_thread = node->thread;
-	current_thread->status = RUNNING;
+	current_thread->status = READY;
 
 	start_timer();
+	tot_cntx_switches++; // Increment context switch counter
 
 	swapcontext(&scheduler_context, current_thread->ctx);
 
@@ -273,6 +273,7 @@ static void relinquish_control(int signum)
 	dputs("Timer took!");
 	disable_timer();
 	enqueue(thread_queue, current_thread);
+	tot_cntx_switches++; // Increment context switch counter
 	swapcontext(current_thread->ctx, &scheduler_context);
 }
 

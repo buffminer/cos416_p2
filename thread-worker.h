@@ -24,6 +24,10 @@
 /* Time slice quantum in milliseconds */
 #define QUANTUM 10
 
+#define READY 0
+#define SCHEDULED 1
+#define BLOCKED 2
+
 /* include lib header files that you need here: */
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -38,13 +42,7 @@
 
 typedef uint worker_t;
 
-typedef enum
-{
-	READY,
-	RUNNING,
-	WAITING,
-	TERMINATED
-} thread_state;
+typedef uint thread_state;
 
 typedef struct TCB
 {
