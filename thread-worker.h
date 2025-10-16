@@ -72,6 +72,13 @@ typedef struct worker_mutex_t
 	runqueue *waiting_threads;
 } worker_mutex_t;
 
+typedef struct scheduler
+{
+	tcb *current_thread;
+	ucontext_t scheduler_context;
+	struct runqueue thread_queue;
+} scheduler;
+
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
 

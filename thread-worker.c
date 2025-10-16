@@ -13,7 +13,7 @@ long tot_cntx_switches = 0;
 double avg_turn_time = 0;
 double avg_resp_time = 0;
 long next_thread_id = 0;
-static tcb *global_running_thread;
+struct scheduler *scheduler;
 runqueue *rq;
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
@@ -99,7 +99,7 @@ tcb *get_thread_tcb(worker_t *id)
 void worker_exit(void *value_ptr)
 {
 	// - de-allocate any dynamic memory created when starting this thread
-	tcb *thread_tcb = global_running_thread;
+	tcb *thread_tcb = scheduler->current_thread;
 
 	if (thread_tcb == NULL)
 	{
@@ -107,24 +107,9 @@ void worker_exit(void *value_ptr)
 		return;
 	}
 
-	thread_node *next_node = dequeue(rq);
-	tcb *next_thread = NULL;
-	if (next_node != NULL)
-	{
-		next_thread = next_node->thread;
-	}
-
-	if (next_thread != NULL)
-	{
-		thread_tcb->ctx->uc_link = next_thread->ctx;
-		set_current_thread(next_thread);
-		dputs("switched to next thread");
-	}
-	else
-	{
-		thread_tcb->ctx->uc_link = &main_ctx;
-		dputs("Switched to main thread");
-	}
+	// Revert control to scheduler
+	thread_tcb->ctx->uc_link = &scheduler->scheduler_context;
+	dputs("Switched to scheduler thread");
 
 	dputs("casting thread value pointer to TCB");
 	thread_tcb->status = TERMINATED;
@@ -135,8 +120,7 @@ void worker_exit(void *value_ptr)
 	// dputs("Freed thread context");
 	// free(thread_tcb);
 	// dputs("Freed thread TCB");
-
-	print_runqueue(rq);
+	setcontext(&scheduler->scheduler_context);
 };
 
 /* Wait for thread termination */
@@ -162,12 +146,6 @@ int worker_mutex_init(worker_mutex_t *mutex,
 	mutex->waiting_threads = NULL;
 	return 0;
 };
-
-void set_current_thread(tcb *thread)
-{
-	global_running_thread = thread;
-	return;
-}
 
 /* aquire the mutex lock */
 int worker_mutex_lock(worker_mutex_t *mutex)
@@ -268,6 +246,19 @@ static void schedule()
 #else
 	// # error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
 #endif
+}
+
+static void create_scheduler()
+{
+	// Create the thread the scheduler will run on
+	tcb *scheduler_thread = (tcb *)malloc(sizeof(tcb));
+	getcontext(&scheduler->scheduler_context);
+
+	scheduler->scheduler_context.uc_link = NULL;
+	scheduler->scheduler_context.uc_stack.ss_flags = 0;
+	scheduler->scheduler_context.uc_stack.ss_size = STACK_SIZE;
+	scheduler->scheduler_context.uc_stack.ss_sp = malloc(STACK_SIZE);
+	makecontext(&scheduler->scheduler_context, schedule, 0);
 }
 
 // DO NOT MODIFY THIS FUNCTION
