@@ -39,7 +39,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	// - allocate space of stack for this thread to run
 	// after everything is set, push this thread into run queue and
 	// - make it ready for the execution.
-	
+
 	if (thread_queue == NULL)
 	{
 		thread_queue = (runqueue *)malloc(sizeof(runqueue));
@@ -69,8 +69,10 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	dputs("State and ID set to READY");
 	printf("New thread created with ID: %u\n", new_worker_tcb->id);
 	printf("Thread status: %d\n", new_worker_tcb->status);
-	
-	if (scheduler_context.uc_stack.ss_sp == NULL) {
+
+	if (scheduler_context.uc_stack.ss_sp == NULL)
+	{
+		dputs("Creating scheduler");
 		create_scheduler();
 	}
 
@@ -189,18 +191,20 @@ static void sched_psjf()
 	// - your own implementation of PSJF
 	// (feel free to modify arguments and return types)
 
-    thread_node *node = dequeue(thread_queue);
-    if (node == NULL || node->thread == NULL)
-    {
-        return;
-    }
+	thread_node *node = dequeue(thread_queue);
+	if (node == NULL || node->thread == NULL)
+	{
+		return;
+	}
 
-    current_thread = node->thread;
-    current_thread->status = RUNNING;
+	current_thread = node->thread;
+	current_thread->status = RUNNING;
 
-    swapcontext(&scheduler_context, current_thread->ctx);
+	start_timer();
 
-    free(node);
+	swapcontext(&scheduler_context, current_thread->ctx);
+
+	free(node);
 }
 
 /* Preemptive MLFQ scheduling algorithm */
@@ -249,25 +253,41 @@ static void schedule()
 
 	// - invoke scheduling algorithms according to the policy (PSJF or MLFQ or CFS)
 	// #if defined(PSJF)
-	while(thread_queue != NULL && thread_queue->head != NULL) {
+	while (thread_queue != NULL && thread_queue->head != NULL)
+	{
+		dputs("\n\tScheduler return point\n");
 		sched_psjf();
-	
-		#if defined(MLFQ)
-			sched_mlfq();
-		#elif defined(CFS)
-			sched_cfs();
-		#else
-			// # error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
-		#endif
+
+#if defined(MLFQ)
+		sched_mlfq();
+#elif defined(CFS)
+		sched_cfs();
+#else
+		// # error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
+#endif
 	}
+}
+
+static void relinquish_control(int signum)
+{
+	dputs("Timer took!");
+	disable_timer();
+	enqueue(thread_queue, current_thread);
+	swapcontext(current_thread->ctx, &scheduler_context);
 }
 
 static void create_scheduler()
 {
+	// Setup the timer
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = &relinquish_control;
+	sigaction(SIGPROF, &sa, NULL);
+
 	// Create the thread the scheduler will run on
 	tcb *scheduler_thread = (tcb *)malloc(sizeof(tcb));
 	getcontext(&scheduler_context);
-
+	dputs("\n\tIn create scheduler\n");
 	scheduler_context.uc_link = NULL;
 	scheduler_context.uc_stack.ss_flags = 0;
 	scheduler_context.uc_stack.ss_size = STACK_SIZE;
@@ -288,3 +308,31 @@ void print_app_stats(void)
 // Feel free to add any other functions you need
 
 // YOUR CODE HERE
+
+void start_timer()
+{
+	struct itimerval timer;
+
+	timer.it_interval.tv_usec = 0;
+	timer.it_interval.tv_sec = 0;
+
+	timer.it_value.tv_usec = QUANTUM * 1000;
+	timer.it_value.tv_sec = 0;
+
+	// Set the timer up (start the timer)
+	setitimer(ITIMER_PROF, &timer, NULL);
+}
+
+void disable_timer()
+{
+	struct itimerval timer;
+
+	timer.it_interval.tv_usec = 0;
+	timer.it_interval.tv_sec = 0;
+
+	timer.it_value.tv_usec = 0;
+	timer.it_value.tv_sec = 0;
+
+	// Set the timer up (start the timer)
+	setitimer(ITIMER_PROF, &timer, NULL);
+}

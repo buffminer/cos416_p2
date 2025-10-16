@@ -31,7 +31,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ucontext.h>
+#include <signal.h>
+#include <sys/time.h>
 #include "runqueue.h"
+#include <string.h>
 
 typedef uint worker_t;
 
@@ -103,6 +106,10 @@ int worker_mutex_unlock(worker_mutex_t *mutex);
 
 /* destroy the mutex */
 int worker_mutex_destroy(worker_mutex_t *mutex);
+
+void start_timer();
+static void relinquish_control();
+void disable_timer();
 
 tcb *get_thread_tcb(worker_t *id);
 static void create_scheduler();
