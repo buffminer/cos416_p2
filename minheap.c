@@ -28,43 +28,24 @@ typedef struct
     size_t capacity;
 } minHeap;
 
-int append(minHeap *heap, Node node);
+int heap_push(minHeap *heap, Node node);
 int random_array(minHeap *heap, size_t quantity, int min, int max);
 void swap(Node *parent, Node *child);
-void heapify(minHeap *heap, size_t i);
+void bubble_up(minHeap *heap, size_t i);
+void bubble_down(minHeap *heap, size_t i);
 void build_min_heap(minHeap *heap);
 
 int main()
 {
     minHeap heap = {0};
     
-    if(!random_array(&heap, TEST_LENGTH, MINIMUM, MAXIMUM))
-    {
-        fprintf(stderr, "Failed to allocate array");
-        return EXIT_FAILURE;
-    }
-
-    printf("Before sort: ");
-    for(size_t i = 0; i < heap.size; i++)
-    {
-        printf("%i ", heap.arr[i].key);
-    }
-    printf("\n");
-
-    build_min_heap(&heap);
-
-    printf("After sort:  ");
-    for(size_t i = 0; i < heap.size; i++)
-    {
-        printf("%i ", heap.arr[i].key);
-    }
-    printf("\n");
+    random_array(&heap, TEST_LENGTH, MINIMUM, MAXIMUM);
 
     free(heap.arr);
     return 0;
 }
 
-int append(minHeap *heap, Node node)
+int heap_push(minHeap *heap, Node node)
 {
     if(heap->size == heap->capacity)
     {
@@ -76,6 +57,17 @@ int append(minHeap *heap, Node node)
         heap->capacity = newcap;
     }
     heap->arr[heap->size++] = node;
+    bubble_up(heap, heap->size - 1);
+    if(DEBUG)
+    {
+        printf("%i was added to the heap.\n", node.key);
+        printf("Current heap: ");
+        for(size_t i = 0; i < heap->size; i++)
+        {
+            printf("%i ", heap->arr[i].key);
+        }
+        printf("\nSize: %zu\nCapacity: %zu\n\n", heap->size, heap->capacity);
+    }
     return 1;
 }
 
@@ -102,7 +94,7 @@ int random_array(minHeap *heap, size_t quantity, int min, int max)
         seen[num - min] = 1;
 
         Node node = { .key = num };
-        if(!append(heap, node)){ 
+        if(!heap_push(heap, node)){ 
             ok = 0; 
             break; 
         }
@@ -119,7 +111,18 @@ void swap(Node *parent, Node *child)
     *child = temp;
 }
 
-void heapify(minHeap *heap, size_t i)
+void bubble_up(minHeap *heap, size_t i)
+{
+    size_t parent = PARENT(i);
+    if(i != 0 && heap->arr[i].key < heap->arr[parent].key)
+    {
+        swap(&heap->arr[parent], &heap->arr[i]);
+        bubble_up(heap, parent);
+    }
+    
+}
+
+void bubble_down(minHeap *heap, size_t i)
 {
     size_t minimum = i;
     size_t left = LEFT(i);
@@ -137,7 +140,7 @@ void heapify(minHeap *heap, size_t i)
     {
         swap(&heap->arr[i], &heap->arr[minimum]);
 
-        heapify(heap, minimum);
+        bubble_down(heap, minimum);
     }
 }
 
@@ -145,6 +148,6 @@ void build_min_heap(minHeap *heap)
 {
     for(size_t i = heap->size / 2; i-- > 0; )
     {
-        heapify(heap, i);
+        bubble_down(heap, i);
     }
 }
