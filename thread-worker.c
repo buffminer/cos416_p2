@@ -39,7 +39,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	// - allocate space of stack for this thread to run
 	// after everything is set, push this thread into run queue and
 	// - make it ready for the execution.
-
+	
 	if (thread_queue == NULL)
 	{
 		thread_queue = (runqueue *)malloc(sizeof(runqueue));
@@ -52,7 +52,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	// Initialize context for new thread
 	new_worker_tcb->ctx = (ucontext_t *)malloc(sizeof(ucontext_t));
 	getcontext(new_worker_tcb->ctx);
-	new_worker_tcb->ctx->uc_link = NULL;
+	new_worker_tcb->ctx->uc_link = &scheduler_context;
 	dputs("Context initialized");
 
 	// Allocate and initialize context stack
@@ -69,11 +69,15 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	dputs("State and ID set to READY");
 	printf("New thread created with ID: %u\n", new_worker_tcb->id);
 	printf("Thread status: %d\n", new_worker_tcb->status);
+	
+	if (scheduler_context.uc_stack.ss_sp == NULL) {
+		create_scheduler();
+	}
 
 	// TODO: Give a real priority value
 	new_worker_tcb->priority = 0; // Highest priority for MLFQ
-	enqueue(rq, new_worker_tcb);
-	print_runqueue(rq);
+	enqueue(thread_queue, new_worker_tcb);
+	print_runqueue(thread_queue);
 
 	return 0;
 }
@@ -93,7 +97,7 @@ int worker_yield()
 
 tcb *get_thread_tcb(worker_t *id)
 {
-	return (find_tcb(rq, *id))->thread;
+	return (find_tcb(thread_queue, *id))->thread;
 }
 
 /* terminate a thread */
@@ -108,11 +112,6 @@ void worker_exit(void *value_ptr)
 		return;
 	}
 
-	// Revert control to scheduler
-	thread_tcb->ctx->uc_link = &scheduler_context;
-	dputs("Switched to scheduler thread");
-
-	dputs("casting thread value pointer to TCB");
 	thread_tcb->status = TERMINATED;
 	// dputs("Thread status set to TERMINATED");
 	// free(thread_tcb->ctx->uc_stack.ss_sp);
@@ -190,7 +189,18 @@ static void sched_psjf()
 	// - your own implementation of PSJF
 	// (feel free to modify arguments and return types)
 
-	// YOUR CODE HERE
+    thread_node *node = dequeue(thread_queue);
+    if (node == NULL || node->thread == NULL)
+    {
+        return;
+    }
+
+    current_thread = node->thread;
+    current_thread->status = RUNNING;
+
+    swapcontext(&scheduler_context, current_thread->ctx);
+
+    free(node);
 }
 
 /* Preemptive MLFQ scheduling algorithm */
@@ -238,15 +248,18 @@ static void schedule()
 	// YOUR CODE HERE
 
 	// - invoke scheduling algorithms according to the policy (PSJF or MLFQ or CFS)
-#if defined(PSJF)
-	sched_psjf();
-#elif defined(MLFQ)
-	sched_mlfq();
-#elif defined(CFS)
-	sched_cfs();
-#else
-	// # error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
-#endif
+	// #if defined(PSJF)
+	while(thread_queue != NULL && thread_queue->head != NULL) {
+		sched_psjf();
+	
+		#if defined(MLFQ)
+			sched_mlfq();
+		#elif defined(CFS)
+			sched_cfs();
+		#else
+			// # error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
+		#endif
+	}
 }
 
 static void create_scheduler()

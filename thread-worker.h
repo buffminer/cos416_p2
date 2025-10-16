@@ -104,9 +104,10 @@ int worker_mutex_unlock(worker_mutex_t *mutex);
 /* destroy the mutex */
 int worker_mutex_destroy(worker_mutex_t *mutex);
 
-void set_current_thread(tcb *thread);
-
 tcb *get_thread_tcb(worker_t *id);
+static void create_scheduler();
+
+extern ucontext_t scheduler_context;
 
 /* Function to print global statistics. Do not modify this function.*/
 void print_app_stats(void);
