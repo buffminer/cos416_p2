@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 // These are only for the random array/testing purposes
 // Will not be relavent for the project
@@ -29,6 +30,7 @@ typedef struct
 } minHeap;
 
 int heap_push(minHeap *heap, Node node);
+int heap_pop(minHeap *heap);
 int random_array(minHeap *heap, size_t quantity, int min, int max);
 void swap(Node *parent, Node *child);
 void bubble_up(minHeap *heap, size_t i);
@@ -40,6 +42,12 @@ int main()
     minHeap heap = {0};
     
     random_array(&heap, TEST_LENGTH, MINIMUM, MAXIMUM);
+
+    if(!heap_pop(&heap))
+    {
+        fprintf(stderr, "Error: no node was popped.");
+        return EXIT_FAILURE;
+    }
 
     free(heap.arr);
     return 0;
@@ -69,6 +77,33 @@ int heap_push(minHeap *heap, Node node)
         printf("\nSize: %zu\nCapacity: %zu\n\n", heap->size, heap->capacity);
     }
     return 1;
+}
+
+int heap_pop(minHeap *heap)
+{
+    if(heap->size != 0)
+    {
+        Node pop = heap->arr[0];
+        size_t newlen = heap->size - 1;
+        swap(&heap->arr[0], &heap->arr[heap->size - 1]);
+        Node *temp = realloc(heap->arr, newlen * sizeof(*temp));
+        if(!temp) return 0;
+        heap->arr = temp;
+        heap->size--;
+        bubble_down(heap, 0);
+        if(DEBUG)
+        {
+            printf("%i was removed from the heap.\n", pop.key);
+            printf("Current heap: ");
+            for(size_t i = 0; i < heap->size; i++)
+            {
+                printf("%i ", heap->arr[i].key);
+            }
+            printf("\nSize: %zu\nCapacity: %zu\n\n", heap->size, heap->capacity);
+        }
+        return 1;
+    }
+    return 0;
 }
 
 int random_array(minHeap *heap, size_t quantity, int min, int max)
