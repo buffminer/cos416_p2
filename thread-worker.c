@@ -73,6 +73,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	new_worker_tcb->priority = 0; // Highest priority for MLFQ
 	enqueue(rq, new_worker_tcb);
 	print_runqueue(rq);
+
 	return 0;
 }
 
@@ -106,16 +107,36 @@ void worker_exit(void *value_ptr)
 		return;
 	}
 
+	thread_node *next_node = dequeue(rq);
+	tcb *next_thread = NULL;
+	if (next_node != NULL)
+	{
+		next_thread = next_node->thread;
+	}
+
+	if (next_thread != NULL)
+	{
+		thread_tcb->ctx->uc_link = next_thread->ctx;
+		set_current_thread(next_thread);
+		dputs("switched to next thread");
+	}
+	else
+	{
+		thread_tcb->ctx->uc_link = &main_ctx;
+		dputs("Switched to main thread");
+	}
+
 	dputs("casting thread value pointer to TCB");
 	thread_tcb->status = TERMINATED;
-	dputs("Thread status set to TERMINATED");
-	free(thread_tcb->ctx->uc_stack.ss_sp);
-	dputs("Freed thread stack");
-	free(thread_tcb->ctx);
-	dputs("Freed thread context");
-	free(thread_tcb);
-	dputs("Freed thread TCB");
-	// free(node);
+	// dputs("Thread status set to TERMINATED");
+	// free(thread_tcb->ctx->uc_stack.ss_sp);
+	// dputs("Freed thread stack");
+	// free(thread_tcb->ctx);
+	// dputs("Freed thread context");
+	// free(thread_tcb);
+	// dputs("Freed thread TCB");
+
+	print_runqueue(rq);
 };
 
 /* Wait for thread termination */
@@ -141,6 +162,12 @@ int worker_mutex_init(worker_mutex_t *mutex,
 	mutex->waiting_threads = NULL;
 	return 0;
 };
+
+void set_current_thread(tcb *thread)
+{
+	global_running_thread = thread;
+	return;
+}
 
 /* aquire the mutex lock */
 int worker_mutex_lock(worker_mutex_t *mutex)
