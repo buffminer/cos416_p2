@@ -94,6 +94,12 @@ int worker_yield()
 
 	// YOUR CODE HERE
 
+	current_thread->status = READY;
+	dputs("worker yielded");
+	enqueue(thread_queue, current_thread);
+	tot_cntx_switches++; // Increment context switch counter
+	swapcontext(current_thread->ctx, &scheduler_context);
+
 	return 0;
 };
 
