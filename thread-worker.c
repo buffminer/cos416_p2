@@ -12,14 +12,14 @@
 long tot_cntx_switches = 0;
 double avg_turn_time = 0;
 double avg_resp_time = 0;
-long next_thread_id = 0;
+long next_thread_id = 1;
 
 tcb *current_thread;
 ucontext_t scheduler_context;
 struct runqueue *thread_queue;
 
 // This is the context of the user code that calls threading library
-ucontext_t original_context;
+tcb *original_thread;
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
 // YOUR CODE HERE
@@ -171,7 +171,8 @@ int worker_mutex_lock(worker_mutex_t *mutex)
 
 	// YOUR CODE HERE
 
-	if (__sync_lock_test_and_set(&mutex->locked, 1) == 0) {
+	if (__sync_lock_test_and_set(&mutex->locked, 1) == 0)
+	{
 
 		// Assign ownership and return, which results in the owenr thread running the rest of its code
 		mutex->owner = &current_thread->id;
@@ -180,13 +181,13 @@ int worker_mutex_lock(worker_mutex_t *mutex)
 
 	// If mutex already locked, block current thread
 	current_thread->status = BLOCKED;
-	
+
 	// By adding to blocked list, we avoid re-running threads that cannot be run by scheduler
 	enqueue(mutex->waiting_threads, current_thread);
 	print_runqueue(mutex->waiting_threads, "Waiting threads (adding to mutex)");
 	tot_cntx_switches++;
 	swapcontext(current_thread->ctx, &scheduler_context);
-	
+
 	return 0;
 };
 
@@ -198,24 +199,27 @@ int worker_mutex_unlock(worker_mutex_t *mutex)
 	// so that they could compete for mutex later.
 
 	// YOUR CODE HERE
-	
+
 	// Clear the owner and unlock the mutex
 	__sync_lock_release(&mutex->locked);
 	mutex->owner = NULL;
 
-	if (mutex->waiting_threads == NULL) {
+	if (mutex->waiting_threads == NULL)
+	{
 		printf("Error: mutex already destroyed");
 		return 1;
 	}
 
-	if (mutex->waiting_threads->head == NULL) {
+	if (mutex->waiting_threads->head == NULL)
+	{
 		printf("Error: mutex has no waiting jobs");
 		return 1;
 	}
-	
+
 	print_runqueue(mutex->waiting_threads, "Waiting threads (popping from mutex)");
 	thread_node *node = dequeue(mutex->waiting_threads);
-	if (node != NULL && node->thread != NULL) {
+	if (node != NULL && node->thread != NULL)
+	{
 		node->thread->status = READY;
 		enqueue(thread_queue, node->thread);
 		free(node);
@@ -247,7 +251,7 @@ static void sched_psjf()
 	{
 		return;
 	}
-	
+
 	current_thread = node->thread;
 	current_thread->status = READY;
 
@@ -319,9 +323,6 @@ static void schedule()
 		// # error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
 #endif
 	}
-
-	// After thread queue is empty, return to the original context
-	// swapcontext(&scheduler_context, &original_context);
 }
 
 static void relinquish_control(int signum)
@@ -335,7 +336,7 @@ static void relinquish_control(int signum)
 static void create_scheduler()
 {
 
-	// getcontext(&original_context);
+	save_original_context();
 
 	// Setup the timer
 	struct sigaction sa;
@@ -352,8 +353,19 @@ static void create_scheduler()
 	scheduler_context.uc_stack.ss_size = STACK_SIZE;
 	scheduler_context.uc_stack.ss_sp = malloc(STACK_SIZE);
 	makecontext(&scheduler_context, schedule, 0);
+
+	enqueue(thread_queue, original_thread);
 }
 
+void save_original_context()
+{
+	original_thread = (tcb *)malloc(sizeof(tcb));
+	original_thread->id = 0;
+	original_thread->status = SCHEDULED;
+	original_thread->ctx = (ucontext_t *)malloc(sizeof(ucontext_t));
+	original_thread->ctx->uc_link = &scheduler_context;
+	getcontext(original_thread->ctx);
+}
 
 // DO NOT MODIFY THIS FUNCTION
 /* Function to print global statistics. Do not modify this function.*/

@@ -111,6 +111,7 @@ void disable_timer();
 
 tcb *get_thread_tcb(worker_t *id);
 static void create_scheduler();
+void save_original_context();
 
 extern ucontext_t scheduler_context;
 
