@@ -31,7 +31,7 @@ typedef struct thread_node
 
 void init_runqueue(runqueue *rq);
 
-void print_runqueue(runqueue *rq);
+void print_runqueue(runqueue *rq, char *name);
 
 void enqueue(runqueue *rq, tcb *thread);
 thread_node *find_tcb(runqueue *rq, worker_t threadID);

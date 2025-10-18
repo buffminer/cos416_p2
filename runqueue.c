@@ -112,14 +112,14 @@ thread_node *dequeue(runqueue *rq)
     return tn;
 }
 
-void print_runqueue(runqueue *rq)
+void print_runqueue(runqueue *rq, char *name)
 {
     thread_node *curr = rq->head;
-    printf("Runqueue: ");
+    printf("%s: ", name);
     while (curr != NULL)
     {
         printf("%lu ", (unsigned long)curr->thread->id);
         curr = curr->next_thread;
     }
-    printf("\n");
+    printf("\n\n");
 }
