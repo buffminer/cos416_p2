@@ -336,7 +336,6 @@ static void relinquish_control(int signum)
 static void create_scheduler()
 {
 
-	save_original_context();
 
 	// Setup the timer
 	struct sigaction sa;
@@ -353,6 +352,7 @@ static void create_scheduler()
 	scheduler_context.uc_stack.ss_size = STACK_SIZE;
 	scheduler_context.uc_stack.ss_sp = malloc(STACK_SIZE);
 	makecontext(&scheduler_context, schedule, 0);
+	save_original_context();
 
 	enqueue(thread_queue, original_thread);
 }
@@ -363,7 +363,7 @@ void save_original_context()
 	original_thread->id = 0;
 	original_thread->status = SCHEDULED;
 	original_thread->ctx = (ucontext_t *)malloc(sizeof(ucontext_t));
-	original_thread->ctx->uc_link = &scheduler_context;
+	current_thread = original_thread;
 	getcontext(original_thread->ctx);
 }
 
