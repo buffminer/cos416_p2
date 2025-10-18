@@ -13,9 +13,13 @@ long tot_cntx_switches = 0;
 double avg_turn_time = 0;
 double avg_resp_time = 0;
 long next_thread_id = 0;
+
 tcb *current_thread;
 ucontext_t scheduler_context;
 struct runqueue *thread_queue;
+
+// This is the context of the user code that calls threading library
+ucontext_t original_context;
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
 // YOUR CODE HERE
@@ -79,7 +83,7 @@ int worker_create(worker_t *thread, pthread_attr_t *attr,
 	// TODO: Give a real priority value
 	new_worker_tcb->priority = 0; // Highest priority for MLFQ
 	enqueue(thread_queue, new_worker_tcb);
-	print_runqueue(thread_queue);
+	print_runqueue(thread_queue, "Thread queue");
 
 	return 0;
 }
@@ -150,7 +154,9 @@ int worker_mutex_init(worker_mutex_t *mutex,
 	// YOUR CODE HERE
 	mutex->locked = 0;
 	mutex->owner = NULL;
-	mutex->waiting_threads = NULL;
+	mutex->waiting_threads = (runqueue *)malloc(sizeof(runqueue));
+	init_runqueue(mutex->waiting_threads);
+
 	return 0;
 };
 
@@ -165,8 +171,22 @@ int worker_mutex_lock(worker_mutex_t *mutex)
 
 	// YOUR CODE HERE
 
-	while (__sync_lock_test_and_set(&mutex->locked, 1))
-		;
+	if (__sync_lock_test_and_set(&mutex->locked, 1) == 0) {
+
+		// Assign ownership and return, which results in the owenr thread running the rest of its code
+		mutex->owner = &current_thread->id;
+		return 0;
+	}
+
+	// If mutex already locked, block current thread
+	current_thread->status = BLOCKED;
+	
+	// By adding to blocked list, we avoid re-running threads that cannot be run by scheduler
+	enqueue(mutex->waiting_threads, current_thread);
+	print_runqueue(mutex->waiting_threads, "Waiting threads (adding to mutex)");
+	tot_cntx_switches++;
+	swapcontext(current_thread->ctx, &scheduler_context);
+	
 	return 0;
 };
 
@@ -178,7 +198,29 @@ int worker_mutex_unlock(worker_mutex_t *mutex)
 	// so that they could compete for mutex later.
 
 	// YOUR CODE HERE
-	mutex->locked = 0;
+	
+	// Clear the owner and unlock the mutex
+	__sync_lock_release(&mutex->locked);
+	mutex->owner = NULL;
+
+	if (mutex->waiting_threads == NULL) {
+		printf("Error: mutex already destroyed");
+		return 1;
+	}
+
+	if (mutex->waiting_threads->head == NULL) {
+		printf("Error: mutex has no waiting jobs");
+		return 1;
+	}
+	
+	print_runqueue(mutex->waiting_threads, "Waiting threads (popping from mutex)");
+	thread_node *node = dequeue(mutex->waiting_threads);
+	if (node != NULL && node->thread != NULL) {
+		node->thread->status = READY;
+		enqueue(thread_queue, node->thread);
+		free(node);
+	}
+
 	return 0;
 };
 
@@ -186,6 +228,10 @@ int worker_mutex_unlock(worker_mutex_t *mutex)
 int worker_mutex_destroy(worker_mutex_t *mutex)
 {
 	// - de-allocate dynamic memory created in worker_mutex_init
+	__sync_lock_release(&mutex->locked);
+	free(mutex->waiting_threads);
+	mutex->owner = NULL;
+	mutex->waiting_threads = NULL;
 
 	return 0;
 };
@@ -201,9 +247,11 @@ static void sched_psjf()
 	{
 		return;
 	}
-
+	
 	current_thread = node->thread;
 	current_thread->status = READY;
+
+	printf("Now running thread %d\n", current_thread->id);
 
 	start_timer();
 	tot_cntx_switches++; // Increment context switch counter
@@ -261,7 +309,6 @@ static void schedule()
 	// #if defined(PSJF)
 	while (thread_queue != NULL && thread_queue->head != NULL)
 	{
-		dputs("\n\tScheduler return point\n");
 		sched_psjf();
 
 #if defined(MLFQ)
@@ -272,11 +319,13 @@ static void schedule()
 		// # error "Define one of PSJF, MLFQ, or CFS when compiling. e.g. make SCHED=MLFQ"
 #endif
 	}
+
+	// After thread queue is empty, return to the original context
+	// swapcontext(&scheduler_context, &original_context);
 }
 
 static void relinquish_control(int signum)
 {
-	dputs("Timer took!");
 	disable_timer();
 	enqueue(thread_queue, current_thread);
 	tot_cntx_switches++; // Increment context switch counter
@@ -285,6 +334,9 @@ static void relinquish_control(int signum)
 
 static void create_scheduler()
 {
+
+	// getcontext(&original_context);
+
 	// Setup the timer
 	struct sigaction sa;
 	memset(&sa, 0, sizeof(sa));
@@ -292,7 +344,7 @@ static void create_scheduler()
 	sigaction(SIGPROF, &sa, NULL);
 
 	// Create the thread the scheduler will run on
-	tcb *scheduler_thread = (tcb *)malloc(sizeof(tcb));
+	// tcb *scheduler_thread = (tcb *)malloc(sizeof(tcb));
 	getcontext(&scheduler_context);
 	dputs("\n\tIn create scheduler\n");
 	scheduler_context.uc_link = NULL;
@@ -301,6 +353,7 @@ static void create_scheduler()
 	scheduler_context.uc_stack.ss_sp = malloc(STACK_SIZE);
 	makecontext(&scheduler_context, schedule, 0);
 }
+
 
 // DO NOT MODIFY THIS FUNCTION
 /* Function to print global statistics. Do not modify this function.*/
